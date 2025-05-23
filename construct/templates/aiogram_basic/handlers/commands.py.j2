@@ -1,0 +1,12 @@
+from aiogram import Router
+from aiogram.filters import Command
+from aiogram.types import Message
+
+router = Router()
+
+{% for command in commands %}
+@router.message(Command("{{ command.name }}"))
+async def cmd_{{ command.name }}(message: Message):
+    await message.answer("{{ command.response }}")
+
+{% endfor %}
