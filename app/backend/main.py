@@ -6,10 +6,19 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import List
 from pathlib import Path
-
 from .generator import BotGenerator  # Твой класс генератора из generator.py
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title="Telegram Bot Generator API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class Command(BaseModel):
     name: str = Field(..., example="start")
