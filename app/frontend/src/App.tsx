@@ -1,29 +1,40 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { BotSettingsForm } from './components/BotSettingsForm';
-import { BotBlocksEditor } from './components/BotBlocksEditor';
+import { BlockEditor } from './components/BlockEditor';
+import { BlockEditForm } from './components/BlockEditForm';
 import { colors, commonStyles } from './styles';
 
-type Command = {
-  name: string;
-  response: string;
+type Block = {
+  id: string;
+  type: 'command' | 'autoReply' | 'custom';
+  x: number;
+  y: number;
+  settings: {
+    command?: string;
+    triggers?: string[];
+    response: {
+      text: string;
+      image_url?: string;
+      buttons?: Array<{
+        text: string;
+        callback: string;
+      }>;
+    };
+    custom_function?: string;
+    conditions?: {
+      only_if_admin?: boolean;
+    };
+  };
 };
 
 function App() {
   const [step, setStep] = useState<"settings" | "editor">("settings");
   const [botSettings, setBotSettings] = useState<{ botName: string; token: string } | null>(null);
-  const [commands, setCommands] = useState<Command[]>([{ name: '', response: '' }]);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleCommandChange = (idx: number, field: keyof Command, value: string) => {
-    const newCommands = [...commands];
-    newCommands[idx][field] = value;
-    setCommands(newCommands);
-  };
-
-  const addCommand = () => setCommands([...commands, { name: '', response: '' }]);
-  const removeCommand = (idx: number) => setCommands(commands.filter((_, i) => i !== idx));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +51,7 @@ function App() {
         {
           bot_name: botSettings.botName,
           bot_token: botSettings.token,
-          commands: commands.filter(cmd => cmd.name && cmd.response),
+          blocks: blocks,
         },
         { responseType: 'blob' }
       );
@@ -62,18 +73,17 @@ function App() {
     <div style={{
       ...commonStyles.container,
       width: '100%',
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '2rem'
+      maxWidth: '100%',
+      padding: '1rem',
     }}>
       <div style={{ 
         width: '100%',
-        maxWidth: '800px',
-        margin: '0 auto'
+        maxWidth: '100%',
+        marginLeft: '0',
       }}>
         <h2 style={{ 
           color: colors.text,
-          textAlign: 'center',
+          textAlign: 'left',
           marginBottom: '2rem',
           fontSize: '2rem',
           textShadow: '0 0 10px rgba(255, 68, 68, 0.5)'
@@ -104,10 +114,68 @@ function App() {
         )}
         
         {step === "editor" && botSettings && (
-          <BotBlocksEditor 
-            botSettings={botSettings} 
-            onBack={() => setStep("settings")} 
-          />
+          <div>
+            <BlockEditor
+              blocks={blocks}
+              onChange={setBlocks}
+            />
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <button
+                onClick={() => setStep("settings")}
+                style={{
+                  ...commonStyles.button,
+                  marginRight: '10px',
+                }}
+              >
+                Назад
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                style={commonStyles.button}
+              >
+                {loading ? 'Генерация...' : 'Сгенерировать бота'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {selectedBlock && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                ...commonStyles.card,
+                width: '80%',
+                maxWidth: '800px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+              }}
+            >
+              <BlockEditForm
+                block={selectedBlock}
+                onSave={(updatedBlock) => {
+                  setBlocks(blocks.map(block =>
+                    block.id === updatedBlock.id ? updatedBlock : block
+                  ));
+                  setSelectedBlock(null);
+                }}
+                onCancel={() => setSelectedBlock(null)}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
